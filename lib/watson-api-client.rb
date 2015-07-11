@@ -8,28 +8,6 @@ class WatsonAPIClient
 
   VERSION = '0.0.1'
 
-  class << self
-    def listings(apis)
-      methods = {}
-      digest  = {}
-      apis['apis'].each do |api|
-        api['operations'].each do |operation|
-          body = nil
-          (operation['parameters']||[]).each do |parameter|
-            next unless parameter['paramType'] == 'body'
-            body = parameter['name']
-            break
-          end
-          nickname = operation['nickname'].sub(/(.)/) {$1.downcase}
-          methods[nickname] = {'path'=>api['path'], 'operation'=>operation, 'body'=>body}
-          digest[nickname]  = {'method'=>operation['method'], 'path'=>api['path'], 'summary'=>operation['summary']}
-        end
-      end
-      {'apis'=>apis, 'methods'=>methods, 'digest'=>digest}
-    end
-    private :listings
-  end
-
   api_docs = {
     :base => 'https://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/apis/',
     :path => 'listings/api-docs.json',
@@ -65,6 +43,28 @@ class WatsonAPIClient
         pp [self, 'See ' + RawDoc, API['digest']] if '#{__FILE__}' == '#{$PROGRAM_NAME}'
       end
     }
+  end
+
+  class << self
+    def listings(apis)
+      methods = {}
+      digest  = {}
+      apis['apis'].each do |api|
+        api['operations'].each do |operation|
+          body = nil
+          (operation['parameters']||[]).each do |parameter|
+            next unless parameter['paramType'] == 'body'
+            body = parameter['name']
+            break
+          end
+          nickname = operation['nickname'].sub(/(.)/) {$1.downcase}
+          methods[nickname] = {'path'=>api['path'], 'operation'=>operation, 'body'=>body}
+          digest[nickname]  = {'method'=>operation['method'], 'path'=>api['path'], 'summary'=>operation['summary']}
+        end
+      end
+      {'apis'=>apis, 'methods'=>methods, 'digest'=>digest}
+    end
+    private :listings
   end
 
   # All subclass constructors use following hash parameter - 

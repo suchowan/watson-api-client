@@ -95,7 +95,7 @@ Next, let's use 'Personality Insights'.
       'Accept'           => "application/json",
       'Accept-Language'  => "en",
       'Content-Language' => "en",
-      'body'             => open('https://raw.githubusercontent.com/suchowan/when_exe/master/LICENSE.txt',
+      'body'             => open('https://raw.githubusercontent.com/suchowan/watson-api-client/master/LICENSE',
                                  :ssl_verify_mode=>OpenSSL::SSL::VERIFY_NONE))
     p JSON.parse(result.body)
 
@@ -105,7 +105,7 @@ The rest-client and the watson-api-client judge which of path, query, header, bo
 
 More
 -------
-At present this gem is a α version and only the normal behavior of RelationshipExtraction and PersonalityInsights are confirmed.
+At present this gem is an α version and only the normal behavior of RelationshipExtraction and PersonalityInsights are confirmed.
 It is welcome when you can cooperate with the confirmation of other various functions.
 
 
