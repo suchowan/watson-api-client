@@ -47,8 +47,8 @@ class WatsonAPIClient
 
   listings['apis'].each do |list|
     module_eval %Q{
-      class #{list['path'].gsub(/[-_\/](.)/) {$1.upcase}} < self
-        Service = superclass::Services['#{list['path'][1..-1].gsub(/-/, '_')}']
+      class #{('-'+list['path']).gsub(/[-_\/]+(.)/) {$1.upcase}} < self
+        Service = superclass::Services['#{list['path'].sub(/^[-_\/]+/,'').gsub(/-/, '_')}']
         RawDoc  = "#{Base + listings['basePath'] + list['path']}"
 
         class << self
