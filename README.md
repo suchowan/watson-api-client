@@ -102,10 +102,23 @@ Next, let's use 'Personality Insights'.
 The class name, the method name, and the argument setting rules are the same as that of the case of 'Relationship Extraction' almost.
 The rest-client and the watson-api-client judge which of path, query, header, body each argument is used for automatically.
 
+###Visual Recognition example
+
+Last, let's use 'Visual Recognition'.
+
+    service = WatsonAPIClient::VisualRecognition.new(:user=>"xxxxxx",
+                                                     :password=>"yyyyy",
+                                                     :verify_ssl=>OpenSSL::SSL::VERIFY_NONE)
+    result = service.recognizeLabelsService(
+      'img_File' => open('image.jpg','rb')
+    )
+    p JSON.parse(result.body)
+
+It seems that the image file must be on the local file system.
 
 More
 -------
-At present this gem is an α version and only the normal behavior of RelationshipExtraction and PersonalityInsights are confirmed.
+At present this gem is an α version and only the normal behavior of RelationshipExtraction, PersonalityInsights and VisualRecognition are confirmed.
 It is welcome when you can cooperate with the confirmation of other various functions.
 
 
