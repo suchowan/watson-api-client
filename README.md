@@ -55,7 +55,7 @@ Let's use the 'Relationship Extraction' service.
                              'txt' => 'John Smith lives in New York, and he has been living there since 2001.')
     p JSON.parse(result.body)
 
-####The generation of the RelationshipExtraction service object
+####Generation of the RelationshipExtraction service object
 First of all, the instance of the RelationshipExtraction class has to be generated. 
 The constructor argument is passed to the constructor of [RestClient::Resource](http://www.rubydoc.info/gems/rest-client/RestClient/Resource) class.
 Please refer to the document of the rest-client for the details of this hash argument.
@@ -70,7 +70,7 @@ Therefore, it is necessary to start up a server application even if it is a dumm
 If the server application is a Ruby on Rails application that require 'watson-api-client', and if it is deployed on the Cloud Foundry, the watson-api-client can read environment variable VCAP_SERVICES directly.
 In this case, the specification of :user and :password is omissible.
 
-####The extraction of relationship in an example sentence using RelationshipExtraction#extract
+####Extraction of relationship in an example sentence using RelationshipExtraction#extract
 Next, by the 'extract' method of the RelationshipExtraction class, we try to extract relationship in an example sentence.
 How to set the argument can be seen by clicking on the 'Expand Operations' link of the Watson API Reference 'Relationship Extraction'.
 The method name called 'extract' is the nickname corresponding to 'POST /v1/sire/0'.

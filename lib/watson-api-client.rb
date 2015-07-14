@@ -78,6 +78,11 @@ class WatsonAPIClient
   # @note VCAP_SERVICES[http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/getting_started/gs-bluemix.shtml#vcapViewing] is IBM Bluemix™ environment variable.
   #
   def initialize(options={})
+    self.class::API['methods'].each_pair do |method, definition|
+      self.class.module_eval %Q{define_method("#{method}",
+        Proc.new {|options={}| rest_access_#{definition['body'] ? 'with' : 'without'}_body("#{method}", options)}
+      )} unless respond_to?(method)
+    end
     credential = self.class::Service ? self.class::Service.first['credentials'] : {}
     if options[:url]
       @url   = options.delete(:url)
@@ -112,21 +117,5 @@ class WatsonAPIClient
     end
     raise ArgumentError, "Parameter(s) '#{lacked.join(', ')}' required, see #{self.class::RawDoc}." unless lacked.empty?
     [spec['path'].gsub(/\{(.+?)\}/) {options.delete($1)}, spec['operation']['method'].downcase]
-  end
-
-  alias :_method_missing :method_missing
-
-  def method_missing(method, *args, &block)
-    definition = self.class::API['methods'][method.to_s]
-    if definition
-      self.class.module_eval %Q{
-        def #{method}(options={})
-          rest_access_#{definition['body'] ? 'with' : 'without'}_body("#{method}", options)
-        end
-      }
-      send(method, *args, &block)
-    else
-      _method_missing(method, *args, &block)
-    end
   end
 end
