@@ -31,7 +31,7 @@ class WatsonAPIClient
   end
 
   api_docs = {
-    :base => 'https://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/apis/',
+    :base => 'https://web.archive.org/web/20150903190650/http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/apis/',
     :path => 'listings/api-docs.json',
     :ssl_verify_mode => OpenSSL::SSL::VERIFY_NONE
   }
