@@ -9,54 +9,95 @@ class WatsonAPIClient
   VERSION = '0.0.2'
 
   class << self
+
+    private
+
+    def retrieve_doc(doc_urls)
+      apis  = {}
+
+      # Watson API Explorer
+      host1 = doc_urls[:doc_base1][/^https?:\/\/[^\/]+/]
+      open(doc_urls[:doc_base1], Options, &:read).scan(/<p>\s*<a href="\/(.+?)".*?>\s*(.+?)\s*<\/a><\/p>/i) do
+        api = {'path'=>doc_urls[:doc_base1] + $1, 'title'=>$2.sub(/\s*\(.+?\)$/,'')}
+        open(api['path'], Options, &:read).scan(/url:\s*'(.+?)'/) do
+          api['path'] = host1 + $1
+        end
+        apis[api['title']] = api
+      end
+
+      # Watson Developercloud
+      host2 = doc_urls[:doc_base2][/^https?:\/\/[^\/]+/]
+      open(doc_urls[:doc_base2], Options, &:read).scan(/<li>\s*<img src=.+?>\s*<h2><a href="(.+?)".*?>\s*(.+?)\s*<\/a><\/h2>\s*<p>(.+?)<\/p>\s*<\/li>/im) do
+        api = {'path'=>$1, 'title'=>$2, 'description'=>$3}
+        next if api['path'] =~ /\.\./
+        if apis.key?(api['title'])
+          apis[api['title']]['description'] = api['description']
+        else
+          # Only for Relationship Extraction
+          open(doc_urls[:doc_base2] + api['path'], Options, &:read).scan(/<li><a href="(.+?)".*?>API\s+explorer<\/a><\/li>/i) do
+            ref = host2 + $1
+            open(ref, Options, &:read).scan(/getAbsoluteUrl\("(.+?)"\)/) do
+              api['path'] = ref.split('/')[0..-2].join('/') + '/' + $1
+            end
+          end
+          apis[api['title']] = api
+        end
+      end
+
+      apis
+    end
+
+    # for Swagger 2.0
     def listings(apis)
       methods = {}
       digest  = {}
-      apis['apis'].each do |api|
-        api['operations'].each do |operation|
+      apis['paths'].each_pair do |path, operations|
+        operations.each_pair do |method, operation|
           body = nil
           (operation['parameters']||[]).each do |parameter|
-            next unless parameter['paramType'] == 'body'
+            next unless parameter['in'] == 'body'
             body = parameter['name']
             break
           end
-          nickname = operation['nickname'].sub(/(.)/) {$1.downcase}
-          methods[nickname] = {'path'=>api['path'], 'operation'=>operation, 'body'=>body}
-          digest[nickname]  = {'method'=>operation['method'], 'path'=>api['path'], 'summary'=>operation['summary']}
+          nickname = operation['operationId'].sub(/(.)/) {$1.downcase}
+          methods[nickname] = {'method'=>method, 'path'=>path, 'operation'=>operation, 'body'=>body}
+          digest[nickname]  = {'method'=>method, 'path'=>path, 'summary'=>operation['summary']}
         end
       end
       {'apis'=>apis, 'methods'=>methods, 'digest'=>digest}
     end
-    private :listings
   end
 
   api_docs = {
-    :base => 'https://web.archive.org/web/20150903190650/http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/apis/',
-    :path => 'listings/api-docs.json',
+    :gateway   => 'https://gateway.watsonplatform.net',
+    :doc_base1 => 'https://watson-api-explorer.mybluemix.net/',
+    :doc_base2 => 'https://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/',
     :ssl_verify_mode => OpenSSL::SSL::VERIFY_NONE
   }
   JSON.parse(ENV['WATSON_API_DOCS'] || '{}').each_pair do |key, value|
     api_docs[key.to_sym] = value
   end
+  doc_urls = {
+    :doc_base1 => api_docs.delete(:doc_base1),
+    :doc_base2 => api_docs.delete(:doc_base2)
+  }
 
-  Services = JSON.parse(ENV['VCAP_SERVICES'] || '{}')
-  Base     = api_docs.delete(:base)
-  path     = api_docs.delete(:path)
+  Gateway  = api_docs.delete(:gateway)
   Options  = api_docs
-  listings = JSON.parse(open(Base + path, Options).read)
+  Services = JSON.parse(ENV['VCAP_SERVICES'] || '{}')
 
-  listings['apis'].each do |list|
+  retrieve_doc(doc_urls).each_value do |list|
     module_eval %Q{
-      class #{('-'+list['path']).gsub(/[-_\/]+(.)/) {$1.upcase}} < self
-        Service = superclass::Services['#{list['path'].sub(/^[-_\/]+/,'').gsub(/-/, '_')}']
-        RawDoc  = "#{Base + listings['basePath'] + list['path']}"
+      class #{list['title'].gsub(/\s+(.)/) {$1.upcase}} < self
+        Service = superclass::Services['#{list['title'].sub(/\s+/,'_').downcase}']
+        RawDoc  = "#{list['path']}"
 
         class << self
           alias :_const_missing :const_missing
 
           def const_missing(constant)
             if constant == :API
-              const_set(:API, listings(JSON.parse(open(RawDoc, superclass::Options).read)))
+              const_set(:API, listings(JSON.parse(open(RawDoc, superclass::Options, &:read))))
             else
               _const_missing(constant)
             end
@@ -89,8 +130,7 @@ class WatsonAPIClient
     elsif credential['url']
       @url   = credential['url']
     else
-      @url   = self.class::API['apis']['basePath']
-      @url  += self.class::API['apis']['resourcePath'] unless @url.index(self.class::API['apis']['resourcePath'])
+      @url   = Gateway + self.class::API['apis']['basePath']
     end
     @options = {:user=>credential['username'], :password=>credential['password']}.merge(options)
     @service = RestClient::Resource.new(@url, @options)
@@ -116,6 +156,6 @@ class WatsonAPIClient
       lacked << parameter['name'] if parameter['required'] && !options[parameter['name']]
     end
     raise ArgumentError, "Parameter(s) '#{lacked.join(', ')}' required, see #{self.class::RawDoc}." unless lacked.empty?
-    [spec['path'].gsub(/\{(.+?)\}/) {options.delete($1)}, spec['operation']['method'].downcase]
+    [spec['path'].gsub(/\{(.+?)\}/) {options.delete($1)}, spec['method']]
   end
 end
