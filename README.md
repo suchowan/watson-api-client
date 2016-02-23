@@ -104,6 +104,22 @@ The rest-client and the watson-api-client judge which of path, query, header, bo
 
 More
 -------
+The documents which 'watson-api-client' referred to have changed in [February 2016](https://github.com/suchowan/watson-api-client/issues/1).
+
+
+(1) The JSON file which held the list of APIs emptied.
+
+(2) The version of Swagger which describes API specifications went up from 1.2 to 2.0.
+
+
+They may be linked to the release of the IBM Watson for Japanese language.
+
+The new version 0.0.3 corresponding to them was released provisionally.
+Concerning about (1) in the version 0.0.3, the locations of JSON files which describe API specification are acquired from contents of web pages for human using regular expressions.
+
+Essentially, as well as former versions, the location of the API documents should be readable with JSON file.
+I will request to the IBM to revive the JSON file which held the list of APIs.
+
 At present this gem is an alpha version and only the normal behavior of RelationshipExtraction and PersonalityInsights are confirmed.
 It is welcome when you can cooperate with the confirmation of other various functions.
 

@@ -6,7 +6,7 @@ require 'pp' if __FILE__ == $PROGRAM_NAME
 
 class WatsonAPIClient
 
-  VERSION = '0.0.2'
+  VERSION = '0.0.3'
 
   class << self
 
