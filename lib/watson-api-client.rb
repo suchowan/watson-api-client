@@ -17,17 +17,17 @@ class WatsonAPIClient
 
       # Watson API Explorer
       host1 = doc_urls[:doc_base1][/^https?:\/\/[^\/]+/]
-      open(doc_urls[:doc_base1], Options, &:read).scan(/<p>\s*<a href="\/(.+?)".*?>\s*(.+?)\s*<\/a><\/p>/i) do
+      open(doc_urls[:doc_base1], Options, &:read).scan(/<a class="swagger-list--item-link" href="\/(.+?)".*?>\s*(.+?)\s*<\/a>/i) do
         api = {'path'=>doc_urls[:doc_base1] + $1, 'title'=>$2.sub(/\s*\(.+?\)$/,'')}
         open(api['path'], Options, &:read).scan(/url:\s*'(.+?)'/) do
           api['path'] = host1 + $1
         end
         apis[api['title']] = api
       end
-
+      
       # Watson Developercloud
       host2 = doc_urls[:doc_base2][/^https?:\/\/[^\/]+/]
-      open(doc_urls[:doc_base2], Options, &:read).scan(/<li>\s*<img src=.+?>\s*<h2><a href="(.+?)".*?>\s*(.+?)\s*<\/a><\/h2>\s*<p>(.+?)<\/p>\s*<\/li>/im) do
+      open(doc_urls[:doc_base2], Options, &:read).scan(/<li>\s*<img.+data-src=.+?>\s*<h2><a href="(.+?)".*?>\s*(.+?)\s*<\/a><\/h2>\s*<p>(.+?)<\/p>\s*<\/li>/) do
         api = {'path'=>$1, 'title'=>$2, 'description'=>$3}
         next if api['path'] =~ /\.\./
         if apis.key?(api['title'])
@@ -59,7 +59,11 @@ class WatsonAPIClient
             body = parameter['name']
             break
           end
-          nickname = operation['operationId'].sub(/(.)/) {$1.downcase}
+          if operation['operationId'].nil?
+            nickname = path
+          else  
+            nickname = operation['operationId'].sub(/(.)/) {$1.downcase}
+          end
           methods[nickname] = {'method'=>method, 'path'=>path, 'operation'=>operation, 'body'=>body}
           digest[nickname]  = {'method'=>method, 'path'=>path, 'summary'=>operation['summary']}
         end
@@ -71,7 +75,7 @@ class WatsonAPIClient
   api_docs = {
     :gateway   => 'https://gateway.watsonplatform.net',
     :doc_base1 => 'https://watson-api-explorer.mybluemix.net/',
-    :doc_base2 => 'https://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/',
+    :doc_base2 => 'http://www.ibm.com/watson/developercloud/doc/',
     :ssl_verify_mode => OpenSSL::SSL::VERIFY_NONE
   }
   JSON.parse(ENV['WATSON_API_DOCS'] || '{}').each_pair do |key, value|
@@ -85,8 +89,10 @@ class WatsonAPIClient
   Gateway  = api_docs.delete(:gateway)
   Options  = api_docs
   Services = JSON.parse(ENV['VCAP_SERVICES'] || '{}')
+  AvailableAPIs = []
 
   retrieve_doc(doc_urls).each_value do |list|
+    AvailableAPIs << list['title'].gsub(/\s+(.)/) {$1.upcase}
     module_eval %Q{
       class #{list['title'].gsub(/\s+(.)/) {$1.upcase}} < self
         Service = superclass::Services['#{list['title'].sub(/\s+/,'_').downcase}']
@@ -112,7 +118,7 @@ class WatsonAPIClient
   #
   # @param [Hash] options See following..
   # @option options [String] :url          API URL (default: the url described in listings or VCAP_SERVICES)
-  # @option options [String] :user         USER ID (default: the username described in VCAP_SERVICES)
+  # @option options [String] :username     USER ID (default: the username described in VCAP_SERVICES)
   # @option options [String] :password     USER Password (default: the password described in VCAP_SERVICES)
   # @option options [Object] other_options Other options are passed to RestClient::Resource.new[http://www.rubydoc.info/gems/rest-client/RestClient/Resource] as it is. 
   #

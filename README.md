@@ -42,6 +42,15 @@ The watson-api-client is a gem to use REST API on the IBM Watson™ Developer Cl
 To enable these API, you have to do the user registration to the IBM Bluemix™ beforehand, make the services effective, and be relating them to your application.
 For more information, refer to 'Getting Started' in '[Table of Contents for Services Documentation](http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/)'.
 
+###Listing Known APIs
+To view a list of known APIs, youc an use the following method:
+
+```
+require 'watson-api-client'
+
+puts WatsonAPIClient::AvailableAPIs
+```
+
 ###Relationship Extraction example
 
 Let's use the 'Relationship Extraction' service.
@@ -101,10 +110,6 @@ Next, let's use 'Personality Insights'.
 
 The class name, the method name, and the argument setting rules are the same as that of the case of 'Relationship Extraction' almost.
 The rest-client and the watson-api-client judge which of path, query, header, body each argument is used for automatically.
-
-More
--------
-The documents which 'watson-api-client' referred to have changed in [February 2016](https://github.com/suchowan/watson-api-client/issues/1).
 
 
 (1) The JSON file which held the list of APIs emptied.
