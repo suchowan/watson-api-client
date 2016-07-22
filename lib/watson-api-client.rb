@@ -118,7 +118,7 @@ class WatsonAPIClient
   #
   # @param [Hash] options See following..
   # @option options [String] :url          API URL (default: the url described in listings or VCAP_SERVICES)
-  # @option options [String] :username     USER ID (default: the username described in VCAP_SERVICES)
+  # @option options [String] :user         USER ID (default: the username described in VCAP_SERVICES)
   # @option options [String] :password     USER Password (default: the password described in VCAP_SERVICES)
   # @option options [Object] other_options Other options are passed to RestClient::Resource.new[http://www.rubydoc.info/gems/rest-client/RestClient/Resource] as it is. 
   #
@@ -146,7 +146,8 @@ class WatsonAPIClient
 
   def rest_access_without_body(method, options={})
     path, access = swagger_info(method, options)
-    @service[path].send(access, options)
+    path = path + "?" + URI.encode_www_form(options)
+    @service[path].send(access)
   end
 
   def rest_access_with_body(method, options={})
