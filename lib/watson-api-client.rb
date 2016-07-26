@@ -1,4 +1,4 @@
-require 'json'
+﻿require 'json'
 require 'openssl'
 require 'open-uri'
 require 'rest-client'
@@ -6,7 +6,7 @@ require 'pp' if __FILE__ == $PROGRAM_NAME
 
 class WatsonAPIClient
 
-  VERSION = '0.0.3'
+  VERSION = '0.0.4'
 
   class << self
 
@@ -146,8 +146,7 @@ class WatsonAPIClient
 
   def rest_access_without_body(method, options={})
     path, access = swagger_info(method, options)
-    path = path + "?" + URI.encode_www_form(options)
-    @service[path].send(access)
+    @service[path].send(access, options)
   end
 
   def rest_access_with_body(method, options={})
