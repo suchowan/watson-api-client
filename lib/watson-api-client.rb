@@ -146,6 +146,7 @@ class WatsonAPIClient
 
   def rest_access_without_body(method, options={})
     path, access = swagger_info(method, options)
+    options = { :params => options } if access.downcase == 'get'
     @service[path].send(access, options)
   end
 

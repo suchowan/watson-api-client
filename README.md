@@ -2,6 +2,7 @@
 ================================================================
 
 [![Gem Version](https://badge.fury.io/rb/watson-api-client.svg)](http://badge.fury.io/rb/watson-api-client)
+[![Build Status](https://travis-ci.org/blueboxjesse/watson-api-client.svg?branch=master)](https://travis-ci.org/blueboxjesse/watson-api-client)
 
 The [watson-api-client](http://rubygems.org/gems/watson-api-client) is a gem to use REST API on the IBM Watson™ Developer Cloud.
 
