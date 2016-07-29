@@ -6,7 +6,7 @@ require 'pp' if __FILE__ == $PROGRAM_NAME
 
 class WatsonAPIClient
 
-  VERSION = '0.0.4'
+  VERSION = '0.0.5'
 
   class << self
 
@@ -18,11 +18,14 @@ class WatsonAPIClient
       # Watson API Explorer
       host1 = doc_urls[:doc_base1][/^https?:\/\/[^\/]+/]
       open(doc_urls[:doc_base1], Options, &:read).scan(/<a class="swagger-list--item-link" href="\/(.+?)".*?>\s*(.+?)\s*<\/a>/i) do
-        api = {'path'=>doc_urls[:doc_base1] + $1, 'title'=>$2.sub(/\s*\(.+?\)$/,'')}
-        open(api['path'], Options, &:read).scan(/url:\s*'(.+?)'/) do
-          api['path'] = host1 + $1
+        begin
+          api = {'path'=>doc_urls[:doc_base1] + $1, 'title'=>$2.sub(/\s*\(.+?\)$/,'')}
+          open(api['path'], Options, &:read).scan(/url:\s*'(.+?)'/) do
+            api['path'] = host1 + $1
+          end
+          apis[api['title']] = api
+        rescue OpenURI::HTTPError
         end
-        apis[api['title']] = api
       end
       
       # Watson Developercloud
