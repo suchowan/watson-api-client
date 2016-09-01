@@ -6,7 +6,9 @@ require 'pp' if __FILE__ == $PROGRAM_NAME
 
 class WatsonAPIClient
 
-  VERSION = '0.0.5'
+  VERSION = '0.0.6'
+
+  class Alchemy < self; end
 
   class << self
 
@@ -27,24 +29,12 @@ class WatsonAPIClient
         rescue OpenURI::HTTPError
         end
       end
-      
+
       # Watson Developercloud
       host2 = doc_urls[:doc_base2][/^https?:\/\/[^\/]+/]
       open(doc_urls[:doc_base2], Options, &:read).scan(/<li>\s*<img.+data-src=.+?>\s*<h2><a href="(.+?)".*?>\s*(.+?)\s*<\/a><\/h2>\s*<p>(.+?)<\/p>\s*<\/li>/) do
         api = {'path'=>$1, 'title'=>$2, 'description'=>$3}
-        next if api['path'] =~ /\.\./
-        if apis.key?(api['title'])
-          apis[api['title']]['description'] = api['description']
-        else
-          # Only for Relationship Extraction
-          open(doc_urls[:doc_base2] + api['path'], Options, &:read).scan(/<li><a href="(.+?)".*?>API\s+explorer<\/a><\/li>/i) do
-            ref = host2 + $1
-            open(ref, Options, &:read).scan(/getAbsoluteUrl\("(.+?)"\)/) do
-              api['path'] = ref.split('/')[0..-2].join('/') + '/' + $1
-            end
-          end
-          apis[api['title']] = api
-        end
+        apis[api['title']]['description'] = api['description'] if api['path'] !~ /\.\./ && apis.key?(api['title'])
       end
 
       apis
@@ -52,23 +42,20 @@ class WatsonAPIClient
 
     # for Swagger 2.0
     def listings(apis)
-      methods = {}
-      digest  = {}
+      methods = Hash.new {|h,k| h[k] = {}}
+      digest  = Hash.new {|h,k| h[k] = {}}
       apis['paths'].each_pair do |path, operations|
-        operations.each_pair do |method, operation|
+        operations.each_pair do |accsess, operation|
           body = nil
           (operation['parameters']||[]).each do |parameter|
             next unless parameter['in'] == 'body'
             body = parameter['name']
             break
           end
-          if operation['operationId'].nil?
-            nickname = path
-          else  
-            nickname = operation['operationId'].sub(/(.)/) {$1.downcase}
-          end
-          methods[nickname] = {'method'=>method, 'path'=>path, 'operation'=>operation, 'body'=>body}
-          digest[nickname]  = {'method'=>method, 'path'=>path, 'summary'=>operation['summary']}
+          nickname = (operation['operationId'] || path.split('/').last) #.sub(/(.)/) {$1.downcase}
+          nickname = 'delete' unless nickname =~ /\A[_a-z]/i
+          methods[nickname][accsess.downcase] = {'path'=>path, 'operation'=>operation, 'body'=>body}
+          digest[nickname][accsess.downcase]  = {'path'=>path, 'summary'=>operation['summary']}
         end
       end
       {'apis'=>apis, 'methods'=>methods, 'digest'=>digest}
@@ -77,6 +64,7 @@ class WatsonAPIClient
 
   api_docs = {
     :gateway   => 'https://gateway.watsonplatform.net',
+    :gateway_a => 'https://gateway-a.watsonplatform.net',
     :doc_base1 => 'https://watson-api-explorer.mybluemix.net/',
     :doc_base2 => 'http://www.ibm.com/watson/developercloud/doc/',
     :ssl_verify_mode => OpenSSL::SSL::VERIFY_NONE
@@ -88,17 +76,26 @@ class WatsonAPIClient
     :doc_base1 => api_docs.delete(:doc_base1),
     :doc_base2 => api_docs.delete(:doc_base2)
   }
-
-  Gateway  = api_docs.delete(:gateway)
+  Gateways = {
+    :gateway   => api_docs.delete(:gateway),
+    :gateway_a => api_docs.delete(:gateway_a)
+  }
   Options  = api_docs
   Services = JSON.parse(ENV['VCAP_SERVICES'] || '{}')
+  DefaultParams = {:user=>'username', :password=>'password'}
   AvailableAPIs = []
 
   retrieve_doc(doc_urls).each_value do |list|
     AvailableAPIs << list['title'].gsub(/\s+(.)/) {$1.upcase}
+    klass, env =
+      case list['title']
+      when /^Alchemy/; ['Alchemy',         'alchemy_api'                        ]
+      when /^Visual/ ; ['Alchemy',         'watson_vision_combined'             ]
+      else           ; ['WatsonAPIClient', list['title'].sub(/\s+/,'_').downcase]
+      end
     module_eval %Q{
-      class #{list['title'].gsub(/\s+(.)/) {$1.upcase}} < self
-        Service = superclass::Services['#{list['title'].sub(/\s+/,'_').downcase}']
+      class #{list['title'].gsub(/\s+(.)/) {$1.upcase}} < #{klass}
+        Service = WatsonAPIClient::Services['#{env}']
         RawDoc  = "#{list['path']}"
 
         class << self
@@ -106,7 +103,7 @@ class WatsonAPIClient
 
           def const_missing(constant)
             if constant == :API
-              const_set(:API, listings(JSON.parse(open(RawDoc, superclass::Options, &:read))))
+              const_set(:API, listings(JSON.parse(open(RawDoc, WatsonAPIClient::Options, &:read))))
             else
               _const_missing(constant)
             end
@@ -128,44 +125,81 @@ class WatsonAPIClient
   # @note VCAP_SERVICES[http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/getting_started/gs-bluemix.shtml#vcapViewing] is IBM Bluemix™ environment variable.
   #
   def initialize(options={})
-    self.class::API['methods'].each_pair do |method, definition|
-      self.class.module_eval %Q{define_method("#{method}",
-        Proc.new {|options={}| rest_access_#{definition['body'] ? 'with' : 'without'}_body("#{method}", options)}
-      )} unless respond_to?(method)
+    set_variables(options)
+    @url   ||= Gateways[:gateway] + self.class::API['apis']['basePath']
+    @options = {}
+    self.class.superclass::DefaultParams.each_pair do |sym, key|
+      @options[sym] = @credential[key] if @credential.key?(key)
     end
-    credential = self.class::Service ? self.class::Service.first['credentials'] : {}
-    if options[:url]
-      @url   = options.delete(:url)
-    elsif credential['url']
-      @url   = credential['url']
-    else
-      @url   = Gateway + self.class::API['apis']['basePath']
-    end
-    @options = {:user=>credential['username'], :password=>credential['password']}.merge(options)
+    @options.update(options)
     @service = RestClient::Resource.new(@url, @options)
   end
 
   private
 
+  def set_variables(options)
+    self.class::API['methods'].each_pair do |method, definition|
+      self.class.module_eval %Q{define_method("#{method}",
+        Proc.new {|options={}| rest_access_#{definition[definition.keys.first]['body'] ? 'with' : 'without'}_body("#{method}", options)}
+      )} unless respond_to?(method)
+    end
+    @credential = self.class::Service ? self.class::Service.first['credentials'] : {}
+    if options.key?(:url)
+      @url = options.delete(:url)
+    elsif @credential.key?('url')
+      @url = @credential['url']
+    end
+  end
+
   def rest_access_without_body(method, options={})
     path, access = swagger_info(method, options)
-    options = { :params => options } if access.downcase == 'get'
+    options = { :params => options } if access == 'get'
     @service[path].send(access, options)
   end
 
   def rest_access_with_body(method, options={})
-    path, access = swagger_info(method, options)
-    body = options.delete(self.class::API['methods'][method.to_s]['body'])
+    path, access, definition = swagger_info(method, options)
+    body = options.delete(definition[definition.keys.first]['body'])
     @service[path].send(access, body, options)
   end
 
   def swagger_info(method, options)
-    spec   = self.class::API['methods'][method.to_s]
+    definition = self.class::API['methods'][method.to_s]
+    spec   = definition[definition.keys.first]
     lacked = []
     spec['operation']['parameters'].each do |parameter|
       lacked << parameter['name'] if parameter['required'] && !options[parameter['name']]
     end
     raise ArgumentError, "Parameter(s) '#{lacked.join(', ')}' required, see #{self.class::RawDoc}." unless lacked.empty?
-    [spec['path'].gsub(/\{(.+?)\}/) {options.delete($1)}, spec['method']]
+    [spec['path'].gsub(/\{(.+?)\}/) {options.delete($1)}, definition.keys.first, definition]
+  end
+
+  #
+  # for Alchemy API
+  #
+  class Alchemy < self
+
+    DefaultParams  = %w(apikey api_key)
+
+    def initialize(options={})
+      set_variables(options)
+      @url ||= (Gateways[:gateway_a] + self.class::API['apis']['basePath']).sub('/alchemy-api','')
+      @apikey = {}
+      self.class.superclass::DefaultParams.each do |key|
+        @apikey[key] = @credential[key] if @credential.key?(key)
+        @apikey[key] = options.delete(key.to_sym) if options.key?(key.to_sym)
+      end
+      @options = options
+      @service = RestClient::Resource.new(@url, @options)
+    end
+
+    private
+
+    def swagger_info(method, options)
+      definition = self.class::API['methods'][method.to_s]
+      access = (options.delete(:access) || definition.keys.first).downcase
+      options.update(@apikey)
+      [definition[access]['path'].gsub(/\{(.+?)\}/) {options.delete($1)}, access, definition]
+    end
   end
 end
