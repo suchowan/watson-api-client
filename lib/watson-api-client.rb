@@ -52,16 +52,21 @@ class WatsonAPIClient
               operation['parameters'][index..index] = apis['parameters'][parameter[parameter.keys.first].split('/').last] if parameter.keys.first == '$ref'
             end
             body  = nil
-            names = []
+            query = []
+            min   = []
+            max   = []
             operation['parameters'].each do |parameter|
-              names << parameter['name']
-              body ||= parameter['name'] if parameter['in'] == 'body'
+              param  = parameter['name']
+              body ||= param if parameter['in'] == 'body'
+              query << param if parameter['in'] == 'query'
+              min   << param if parameter['required']
+              max   << param
             end
           end
           access   = access.downcase
           nickname = (operation['operationId'] || path.gsub(/\/\{.+?\}/,'').split('/').last) #.sub(/(.)/) {$1.downcase}
           [nickname, nickname+'_'+access].each do |name|
-            methods[name][access]  = {'path'=>path, 'operation'=>operation, 'body'=>body, 'names'=>names}
+            methods[name][access]  = {'path'=>path, 'operation'=>operation, 'body'=>body, 'query'=>query, 'min'=>min, 'max'=>max}
           end
           digest[nickname][access] = {'path'=>path, 'summary'=>operation['summary']}
         end
@@ -189,30 +194,23 @@ class WatsonAPIClient
 
   def detect_access(definition, options={})
     definition.keys.reverse.each do |access|
-      next unless definition[access]['names'] == (definition[access]['names'] | options.keys)
-      lacked = false
-      definition[access]['operation']['parameters'].each do |parameter|
-        next unless parameter['required'] && !options.key?(parameter['name'])
-        lacked = true
-        break
-      end
-      return access unless lacked
+      spec = definition[access]
+      return access if spec['max'] == (spec['max'] | options.keys) &&
+                                      (spec['min'] - options.keys).empty?
     end
-    raise ArgumentError, "Cannot detect suitable access method from '#{definition.keys.join(', ')}'."
+    raise ArgumentError, "Cannot select the suitable access method from '#{definition.keys.join(', ')}'."
   end
 
   def swagger_info(method, options)
     definition = self.class::API['methods'][method.to_s]
     access = (options.delete(:access) || definition.keys.first).downcase
     spec   = definition[access]
-    lacked = []
-    query  = {}
-    spec['operation']['parameters'].each do |parameter|
-      name = parameter['name']
-      lacked << name if parameter['required'] && !options.key?(name)
-      query[name] = options.delete(name) if parameter['in'] == 'query' && options.key?(name)
-    end
+    lacked = spec['min'] - options.keys
     raise ArgumentError, "Parameter(s) '#{lacked.join(', ')}' required, see #{self.class::RawDoc}." unless lacked.empty?
+    query  = {}
+    spec['query'].each do |param|
+      query[param] = options.delete(param) if options.key?(param)
+    end
     path  = spec['path'].gsub(/\{(.+?)\}/) {options.delete($1)}
     path += '?' + URI.encode_www_form(query) unless query.empty?
     [path, access, spec]
