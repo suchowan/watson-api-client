@@ -45,17 +45,25 @@ class WatsonAPIClient
       methods = Hash.new {|h,k| h[k] = {}}
       digest  = Hash.new {|h,k| h[k] = {}}
       apis['paths'].each_pair do |path, operations|
-        operations.each_pair do |accsess, operation|
-          body = nil
-          (operation['parameters']||[]).each do |parameter|
-            next unless parameter['in'] == 'body'
-            body = parameter['name']
-            break
+        operations.each_pair do |access, operation|
+          if operation['parameters']
+            (0...operation['parameters'].size).to_a.reverse.each do |index|
+              parameter = operation['parameters'][index]
+              operation['parameters'][index..index] = apis['parameters'][parameter[parameter.keys.first].split('/').last] if parameter.keys.first == '$ref'
+            end
+            body = nil
+            operation['parameters'].each do |parameter|
+              next unless parameter['in'] == 'body'
+              body = parameter['name']
+              break
+            end
           end
-          nickname = (operation['operationId'] || path.split('/').last) #.sub(/(.)/) {$1.downcase}
-          nickname = 'delete' unless nickname =~ /\A[_a-z]/i
-          methods[nickname][accsess.downcase] = {'path'=>path, 'operation'=>operation, 'body'=>body}
-          digest[nickname][accsess.downcase]  = {'path'=>path, 'summary'=>operation['summary']}
+          access   = access.downcase
+          nickname = (operation['operationId'] || path.gsub(/\/\{.+?\}/,'').split('/').last) #.sub(/(.)/) {$1.downcase}
+          [nickname, nickname+'_'+access].each do |name|
+            methods[name][access]  = {'path'=>path, 'operation'=>operation, 'body'=>body}
+          end
+          digest[nickname][access] = {'path'=>path, 'summary'=>operation['summary']}
         end
       end
       {'apis'=>apis, 'methods'=>methods, 'digest'=>digest}
@@ -125,6 +133,7 @@ class WatsonAPIClient
   # @note VCAP_SERVICES[http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/getting_started/gs-bluemix.shtml#vcapViewing] is IBM Bluemix™ environment variable.
   #
   def initialize(options={})
+    define_api_methods
     set_variables(options)
     @url   ||= Gateways[:gateway] + self.class::API['apis']['basePath']
     @options = {}
@@ -137,12 +146,15 @@ class WatsonAPIClient
 
   private
 
-  def set_variables(options)
+  def define_api_methods
     self.class::API['methods'].each_pair do |method, definition|
       self.class.module_eval %Q{define_method("#{method}",
-        Proc.new {|options={}| rest_access_#{definition[definition.keys.first]['body'] ? 'with' : 'without'}_body("#{method}", options)}
+        Proc.new {|options={}| rest_access_#{definition[definition.keys.first]['body'] ? 'with' : 'without'}_body("#{method}", options.dup)}
       )} unless respond_to?(method)
     end
+  end
+
+  def set_variables(options)
     @credential = self.class::Service ? self.class::Service.first['credentials'] : {}
     if options.key?(:url)
       @url = options.delete(:url)
@@ -159,31 +171,33 @@ class WatsonAPIClient
 
   def rest_access_with_body(method, options={})
     path, access, definition = swagger_info(method, options)
-    body = options.delete(definition[definition.keys.first]['body'])
+    body = options.delete(definition[access]['body'])
     @service[path].send(access, body, options)
   end
 
   def swagger_info(method, options)
     definition = self.class::API['methods'][method.to_s]
-    spec   = definition[definition.keys.first]
+    access = (options.delete(:access) || definition.keys.first).downcase
+    spec   = definition[access]
     lacked = []
     spec['operation']['parameters'].each do |parameter|
-      lacked << parameter['name'] if parameter['required'] && !options[parameter['name']]
+      lacked << parameter['name'] if parameter['required'] && !options.key?(parameter['name'])
     end
     raise ArgumentError, "Parameter(s) '#{lacked.join(', ')}' required, see #{self.class::RawDoc}." unless lacked.empty?
-    [spec['path'].gsub(/\{(.+?)\}/) {options.delete($1)}, definition.keys.first, definition]
+    [spec['path'].gsub(/\{(.+?)\}/) {options.delete($1)}, access, definition]
   end
 
   #
-  # for Alchemy API
+  # for Alchemy APIs
   #
   class Alchemy < self
 
     DefaultParams  = %w(apikey api_key)
 
     def initialize(options={})
+      define_api_methods
       set_variables(options)
-      @url ||= (Gateways[:gateway_a] + self.class::API['apis']['basePath']).sub('/alchemy-api','')
+      @url  ||= (Gateways[:gateway_a] + self.class::API['apis']['basePath']).sub('/alchemy-api','')
       @apikey = {}
       self.class.superclass::DefaultParams.each do |key|
         @apikey[key] = @credential[key] if @credential.key?(key)
@@ -196,10 +210,8 @@ class WatsonAPIClient
     private
 
     def swagger_info(method, options)
-      definition = self.class::API['methods'][method.to_s]
-      access = (options.delete(:access) || definition.keys.first).downcase
       options.update(@apikey)
-      [definition[access]['path'].gsub(/\{(.+?)\}/) {options.delete($1)}, access, definition]
+      super(method, options)
     end
   end
 end
