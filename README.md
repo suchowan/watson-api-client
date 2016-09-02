@@ -58,9 +58,9 @@ Let's use the [Relationship Extraction functionality in 'AlchemyLanguage'](https
     require 'watson-api-client'
     service = WatsonAPIClient::AlchemyLanguage.new(:apikey=>"......",
                                                    :verify_ssl=>OpenSSL::SSL::VERIFY_NONE)
-    result = service.URLGetTypedRelations('model'      => 'en-news',
-                                          'url'        => 'www.cnn.com',
-                                          'outputMode' => 'json')
+    result = service.URLGetTypedRelations('model'      => 'en-news',      # model:      'en-news',
+                                          'url'        => 'www.cnn.com',  # url:        'www.cnn.com',
+                                          'outputMode' => 'json')         # outputMode: 'json')
     p JSON.parse(result.body)
 
 ####Generation of the AlchemyLanguage service object

@@ -174,7 +174,7 @@ class WatsonAPIClient
 
   def rest_access_auto_detect(method, options={})
     definition = self.class::API['methods'][method.to_s]
-    options[:access] ||= detect_access(definition, options)
+    options[:access] ||= select_access(definition, options)
     definition[options[:access]]['body'] ?
       rest_access_with_body(method, options)  :
       rest_access_without_body(method, options)
@@ -192,21 +192,26 @@ class WatsonAPIClient
     @service[path].send(access, body, options)
   end
 
-  def detect_access(definition, options={})
+  def select_access(definition, options={})
     definition.keys.reverse.each do |access|
       spec = definition[access]
-      return access if spec['max'] == (spec['max'] | options.keys) &&
-                                      (spec['min'] - options.keys).empty?
+      keys = options.keys.map {|key| key.to_s}
+      return access if (keys - spec['max']).empty? && (spec['min'] - keys).empty?
     end
-    raise ArgumentError, "Cannot select the suitable access method from '#{definition.keys.join(', ')}'."
+    raise ArgumentError, "Cannot select the suitable access method from '#{definition.keys.join(', ')}', see #{self.class::RawDoc}."
   end
 
   def swagger_info(method, options)
     definition = self.class::API['methods'][method.to_s]
     access = (options.delete(:access) || definition.keys.first).downcase
     spec   = definition[access]
+    options.keys.each do |key|
+      options[key.to_s] = options.delete(key) if key.kind_of?(Symbol)
+    end
     lacked = spec['min'] - options.keys
-    raise ArgumentError, "Parameter(s) '#{lacked.join(', ')}' required, see #{self.class::RawDoc}." unless lacked.empty?
+    extra  = options.keys - spec['max']
+    raise ArgumentError, "Lacked parameter(s) : '#{lacked.join(', ')}', see #{self.class::RawDoc}." unless lacked.empty?
+    raise ArgumentError, "Extra parameter(s) : '#{extra.join(', ')}', see #{self.class::RawDoc}."   unless extra.empty?
     query  = {}
     spec['query'].each do |param|
       query[param] = options.delete(param) if options.key?(param)
