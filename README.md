@@ -147,7 +147,7 @@ Concerning about (1) in the version 0.0.3, the locations of JSON files which des
 Essentially, as well as former versions, the location of the API documents should be readable with JSON file.
 I will request to the IBM to revive the JSON file which held the list of APIs.
 
-At present this gem is an alpha version and only the normal behavior of RelationshipExtraction and PersonalityInsights are confirmed.
+At present this gem is an alpha version and only the normal behavior of RelationshipExtraction(functionality), PersonalityInsights, and VisualRecognition are confirmed.
 It is welcome when you can cooperate with the confirmation of other various functions.
 
 
