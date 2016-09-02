@@ -125,12 +125,14 @@ class WatsonAPIClient
   # All subclass constructors use following hash parameter - 
   #
   # @param [Hash] options See following..
-  # @option options [String] :url          API URL (default: the url described in listings or VCAP_SERVICES)
-  # @option options [String] :user         USER ID (default: the username described in VCAP_SERVICES)
-  # @option options [String] :password     USER Password (default: the password described in VCAP_SERVICES)
-  # @option options [Object] other_options Other options are passed to RestClient::Resource.new[http://www.rubydoc.info/gems/rest-client/RestClient/Resource] as it is. 
+  # @option options [String] :url                API URL (default: the url described in listings or VCAP_SERVICES)
+  # @option options [String] :user               USER ID (default: the username described in VCAP_SERVICES)
+  # @option options [String] :password           USER Password (default: the password described in VCAP_SERVICES)
+  # @option options [String] :apikey or :api_key API key for the Alchemy API (default: the apikey or api_key described in VCAP_SERVICES)
+  # @option options [String] :version            The release date of the version of the Alchemy API.
+  # @option options [Object] other_options       Other options are passed to RestClient::Resource.new[http://www.rubydoc.info/gems/rest-client/RestClient/Resource] as it is. 
   #
-  # @note VCAP_SERVICES[http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/getting_started/gs-bluemix.shtml#vcapViewing] is IBM Bluemix™ environment variable.
+  # @note VCAP_SERVICES[http://www.ibm.com/watson/developercloud/doc/getting_started/gs-variables.shtml#vcapServices] is IBM Bluemix™ environment variable.
   #
   def initialize(options={})
     define_api_methods
