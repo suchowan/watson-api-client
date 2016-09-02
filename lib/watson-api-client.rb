@@ -51,17 +51,17 @@ class WatsonAPIClient
               parameter = operation['parameters'][index]
               operation['parameters'][index..index] = apis['parameters'][parameter[parameter.keys.first].split('/').last] if parameter.keys.first == '$ref'
             end
-            body = nil
+            body  = nil
+            names = []
             operation['parameters'].each do |parameter|
-              next unless parameter['in'] == 'body'
-              body = parameter['name']
-              break
+              names << parameter['name']
+              body ||= parameter['name'] if parameter['in'] == 'body'
             end
           end
           access   = access.downcase
           nickname = (operation['operationId'] || path.gsub(/\/\{.+?\}/,'').split('/').last) #.sub(/(.)/) {$1.downcase}
           [nickname, nickname+'_'+access].each do |name|
-            methods[name][access]  = {'path'=>path, 'operation'=>operation, 'body'=>body}
+            methods[name][access]  = {'path'=>path, 'operation'=>operation, 'body'=>body, 'names'=>names}
           end
           digest[nickname][access] = {'path'=>path, 'summary'=>operation['summary']}
         end
@@ -149,7 +149,9 @@ class WatsonAPIClient
   def define_api_methods
     self.class::API['methods'].each_pair do |method, definition|
       self.class.module_eval %Q{define_method("#{method}",
-        Proc.new {|options={}| rest_access_#{definition[definition.keys.first]['body'] ? 'with' : 'without'}_body("#{method}", options.dup)}
+        Proc.new {|options={}| rest_access_#{definition.keys.size > 1                  ? 'auto_detect' :
+                                             definition[definition.keys.first]['body'] ? 'with_body'   :
+                                                                                         'without_body' }("#{method}", options.dup)}
       )} unless respond_to?(method)
     end
   end
@@ -163,16 +165,38 @@ class WatsonAPIClient
     end
   end
 
+  def rest_access_auto_detect(method, options={})
+    definition = self.class::API['methods'][method.to_s]
+    options[:access] ||= detect_access(definition, options)
+    definition[options[:access]]['body'] ?
+      rest_access_with_body(method, options)  :
+      rest_access_without_body(method, options)
+  end
+
   def rest_access_without_body(method, options={})
     path, access = swagger_info(method, options)
-    options = { :params => options } if access == 'get'
+    options = {:params => options} if access == 'get'
     @service[path].send(access, options)
   end
 
   def rest_access_with_body(method, options={})
-    path, access, definition = swagger_info(method, options)
-    body = options.delete(definition[access]['body'])
+    path, access, spec = swagger_info(method, options)
+    body = options.delete(spec['body'])
     @service[path].send(access, body, options)
+  end
+
+  def detect_access(definition, options={})
+    definition.keys.reverse.each do |access|
+      next unless definition[access]['names'] == (definition[access]['names'] | options.keys)
+      lacked = false
+      definition[access]['operation']['parameters'].each do |parameter|
+        next unless parameter['required'] && !options.key?(parameter['name'])
+        lacked = true
+        break
+      end
+      return access unless lacked
+    end
+    raise ArgumentError, "Cannot detect suitable access method from '#{definition.keys.join(', ')}'."
   end
 
   def swagger_info(method, options)
@@ -180,11 +204,16 @@ class WatsonAPIClient
     access = (options.delete(:access) || definition.keys.first).downcase
     spec   = definition[access]
     lacked = []
+    query  = {}
     spec['operation']['parameters'].each do |parameter|
-      lacked << parameter['name'] if parameter['required'] && !options.key?(parameter['name'])
+      name = parameter['name']
+      lacked << name if parameter['required'] && !options.key?(name)
+      query[name] = options.delete(name) if parameter['in'] == 'query' && options.key?(name)
     end
     raise ArgumentError, "Parameter(s) '#{lacked.join(', ')}' required, see #{self.class::RawDoc}." unless lacked.empty?
-    [spec['path'].gsub(/\{(.+?)\}/) {options.delete($1)}, access, definition]
+    path  = spec['path'].gsub(/\{(.+?)\}/) {options.delete($1)}
+    path += '?' + URI.encode_www_form(query) unless query.empty?
+    [path, access, spec]
   end
 
   #
@@ -192,7 +221,7 @@ class WatsonAPIClient
   #
   class Alchemy < self
 
-    DefaultParams  = %w(apikey api_key)
+    DefaultParams  = %w(apikey api_key version)
 
     def initialize(options={})
       define_api_methods
