@@ -46,15 +46,12 @@ class WatsonAPIClient
       digest  = Hash.new {|h,k| h[k] = {}}
       apis['paths'].each_pair do |path, operations|
         operations.each_pair do |access, operation|
+          body, query, min, max = nil, [], [], []
           if operation['parameters']
             (0...operation['parameters'].size).to_a.reverse.each do |index|
               parameter = operation['parameters'][index]
               operation['parameters'][index..index] = apis['parameters'][parameter[parameter.keys.first].split('/').last] if parameter.keys.first == '$ref'
             end
-            body  = nil
-            query = []
-            min   = []
-            max   = []
             operation['parameters'].each do |parameter|
               param  = parameter['name']
               body ||= param if parameter['in'] == 'body'
@@ -172,7 +169,7 @@ class WatsonAPIClient
     end
   end
 
-  def rest_access_auto_detect(method, options={})
+  def rest_access_auto_detect(method, options)
     definition = self.class::API['methods'][method.to_s]
     options[:access] ||= select_access(definition, options)
     definition[options[:access]]['body'] ?
@@ -180,19 +177,19 @@ class WatsonAPIClient
       rest_access_without_body(method, options)
   end
 
-  def rest_access_without_body(method, options={})
+  def rest_access_without_body(method, options)
     path, access = swagger_info(method, options)
     options = {:params => options} if access == 'get'
     @service[path].send(access, options)
   end
 
-  def rest_access_with_body(method, options={})
+  def rest_access_with_body(method, options)
     path, access, spec = swagger_info(method, options)
     body = options.delete(spec['body'])
     @service[path].send(access, body, options)
   end
 
-  def select_access(definition, options={})
+  def select_access(definition, options)
     definition.keys.reverse.each do |access|
       spec = definition[access]
       keys = options.keys.map {|key| key.to_s}
