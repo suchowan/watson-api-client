@@ -101,7 +101,7 @@ class WatsonAPIClient
       case list['title']
       when /^Alchemy/; ['Alchemy',         'alchemy_api'                        ]
       when /^Visual/ ; ['Alchemy',         'watson_vision_combined'             ]
-      else           ; ['WatsonAPIClient', list['title'].sub(/\s+/,'_').downcase]
+      else           ; ['WatsonAPIClient', list['title'].gsub(/\s+/,'_').downcase]
       end
     module_eval %Q{
       class #{list['title'].gsub(/\s+(.)/) {$1.upcase}} < #{klass}
