@@ -116,9 +116,9 @@ Last, let's use 'Visual Recognition'.
       service.detect_faces('url'=>'https://example.com/example.jpg'),
       service.detect_faces('url'=>'https://example.com/example.jpg', :access=>'get'),
       service.detect_faces_get('url'=>'https://example.com/example.jpg'),
-      service.detect_faces('images_file' => open('face.png','rb')),
-      service.detect_faces('images_file' => open('face.png','rb'), :access=>'post'),
-      service.detect_faces_post('images_file' => open('face.png','rb'))
+      service.detect_faces('image_file' => open('face.png','rb')),
+      service.detect_faces('image_file' => open('face.png','rb'), :access=>'post'),
+      service.detect_faces_post('image_file' => open('face.png','rb'))
     ].each do |result|
       pp JSON.parse(result.body)
     end
