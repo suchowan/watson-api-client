@@ -130,7 +130,7 @@ When being ambiguous, it's judged by the kind of designated parameters automatic
 
 ###Natural Language Classifier example
 
-Please see examples/NaturalLanguageClassifier/[README.md]{https://github.com/suchowan/watson-api-client/tree/master/examples/NaturalLanguageClassifier/README.md}
+Please see [examples/NaturalLanguageClassifier/README.md](https://github.com/suchowan/watson-api-client/tree/master/examples/NaturalLanguageClassifier/README.md).
 
 
 Additional note at the release of the version 0.0.3
