@@ -2,7 +2,7 @@
 ===================================
 
 
-Preparation
+1.Preparation
 -----------
 
 ###VCAP_SERVICES
@@ -16,7 +16,7 @@ Otherwise, you should specify :user and :password parameters for each WatsonAPIC
 Download the example dataset archive from [here](http://hosi.org/a/blog_text.zip) and extract it to examples/NaturalLanguageClassifier/blog_text/.
 
 
-Training
+2.Training
 --------
 
 ###Generate Natural Language Classifier object
@@ -42,7 +42,7 @@ When classify.rb is called without arguments, the status of the generated classi
 Please wait a moment until its status will be 'Available'.
 
 
-Classification
+3.Classification
 --------------
 
 ```
@@ -60,7 +60,7 @@ At this example, articles in August, 2016 are picked out from the dataset, and t
 ```
 
 
-Natural Language Classifier object deletion
+4.Natural Language Classifier object deletion
 -------------------------------------------
 
 ```
@@ -72,7 +72,7 @@ All the objects that their name are "Blog thema" are deleted.
 When classifier_id is specified as an argument, only the object with the specified classifier_id is deleted.
 
 
-Note
+5.Note
 ----
 
 According to ['Using your own data to train the Natural Language Classifier'](http://www.ibm.com/watson/developercloud/doc/nl-classifier/data_format.shtml), the maximum total length of a text value is 1024 characters.
