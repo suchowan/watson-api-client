@@ -6,7 +6,7 @@ require 'pp' if __FILE__ == $PROGRAM_NAME
 
 class WatsonAPIClient
 
-  VERSION = '0.0.6'
+  VERSION = '0.0.7'
 
   class Alchemy < self; end
 
