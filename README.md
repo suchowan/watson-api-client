@@ -64,8 +64,8 @@ Let's use the [Relationship Extraction functionality in 'AlchemyLanguage'](https
     p JSON.parse(result.body)
 
 ####Generation of the AlchemyLanguage service object
-First of all, the instance of the AlchemyLanguage class has to be generated. 
-The constructor argument is passed to the constructor of [RestClient::Resource](http://www.rubydoc.info/gems/rest-client/RestClient/Resource) class.
+First of all, the instance of the AlchemyLanguage class has to be generated.
+All constructor arguments are passed to the constructor of [RestClient::Resource](http://www.rubydoc.info/gems/rest-client/RestClient/Resource) class except for :apikey, :api_key and :version.
 Please refer to the document of the rest-client for the details of this hash argument.
 
 Class name called AlchemyLanguage is the camel case-ized service name of [Watson API Reference](http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/apis/).
@@ -128,6 +128,10 @@ Please be careful about the difference in the spellings of :apikey and :api_key.
 The 'detect_faces' method comes to work in both 'get' access and 'post' access.
 When being ambiguous, it's judged by the kind of designated parameters automatically.
 
+###Natural Language Classifier example
+
+Please see [NaturalLanguageClassifier/README.md]{https://github.com/suchowan/watson-api-client/tree/master/examples/NaturalLanguageClassifier/README.md}
+
 
 Additional note at the release of the version 0.0.3
 -------
@@ -147,7 +151,7 @@ Concerning about (1) in the version 0.0.3, the locations of JSON files which des
 Essentially, as well as former versions, the location of the API documents should be readable with JSON file.
 I will request to the IBM to revive the JSON file which held the list of APIs.
 
-At present this gem is an alpha version and only the normal behavior of RelationshipExtraction(functionality), PersonalityInsights, and VisualRecognition are confirmed.
+At present this gem is an alpha version and only the normal behavior of RelationshipExtraction(functionality), PersonalityInsights, VisualRecognition and Natural Language Classifier are confirmed.
 It is welcome when you can cooperate with the confirmation of other various functions.
 
 
