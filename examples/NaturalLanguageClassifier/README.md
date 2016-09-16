@@ -7,7 +7,7 @@ Preparation
 
 ###VCAP_SERVICES
 
-Confirm that the Bluemix environment variable VCAP_SERVICES is set.
+Confirm that the Bluemix environment variable [VCAP_SERVICES](http://www.ibm.com/watson/developercloud/doc/getting_started/gs-variables.shtml#vcapServices) is set.
 
 Otherwise, you should specify :user and :password parameters for each WatsonAPIClient::NaturalLanguageClassifier#new method call in all example scripts.
 
