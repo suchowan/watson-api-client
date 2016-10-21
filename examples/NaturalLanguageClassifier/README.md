@@ -13,7 +13,7 @@ Otherwise, you should specify :user and :password parameters for each WatsonAPIC
 
 ###Example dataset
 
-Download the example dataset archive from [here](http://hosi.org/a/blog_text.zip) and extract it to examples/NaturalLanguageClassifier/blog_text/.
+Download the example dataset archive from [here](https://www.dropbox.com/sh/h2u6irutgbgvm9r/AAA9GsagC2vYlWPgOIEj-kHZa?dl=0) and extract it to examples/NaturalLanguageClassifier/blog_text/.
 
 
 2.Training
