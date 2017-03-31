@@ -76,7 +76,7 @@ class WatsonAPIClient
     :gateway   => 'https://gateway.watsonplatform.net',
     :gateway_a => 'https://gateway-a.watsonplatform.net',
     :doc_base1 => 'https://watson-api-explorer.mybluemix.net/',
-    :doc_base2 => 'http://www.ibm.com/watson/developercloud/doc/',
+    :doc_base2 => 'https://www.ibm.com/watson/developercloud/doc/',
     :ssl_verify_mode => OpenSSL::SSL::VERIFY_NONE
   }
   JSON.parse(ENV['WATSON_API_DOCS'] || '{}').each_pair do |key, value|
