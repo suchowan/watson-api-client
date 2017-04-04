@@ -6,7 +6,7 @@ require 'pp' if __FILE__ == $PROGRAM_NAME
 
 class WatsonAPIClient
 
-  VERSION = '0.0.7'
+  VERSION = '0.0.8'
 
   class Alchemy < self; end
 
@@ -159,9 +159,16 @@ class WatsonAPIClient
   def define_api_methods
     self.class::API['methods'].each_pair do |method, definition|
       self.class.module_eval %Q{define_method("#{method}",
-        Proc.new {|options={}| rest_access_#{definition.keys.size > 1                  ? 'auto_detect' :
-                                             definition[definition.keys.first]['body'] ? 'with_body'   :
-                                                                                         'without_body' }("#{method}", options.dup)}
+        Proc.new {|options={}|
+          begin
+            rest_access_#{definition.keys.size > 1                  ? 'auto_detect' :
+                          definition[definition.keys.first]['body'] ? 'with_body'   :
+                                                                      'without_body' }("#{method}", options.dup)
+          rescue RestClient::ExceptionWithResponse => error
+            STDERR.puts ["Failed method: #{self.class}##{method}", options]
+            raise error
+          end
+        }
       )} unless respond_to?(method)
     end
   end
