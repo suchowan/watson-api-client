@@ -45,9 +45,15 @@ class WatsonAPIClient
       methods = Hash.new {|h,k| h[k] = {}}
       digest  = Hash.new {|h,k| h[k] = {}}
       apis['paths'].each_pair do |path, operations|
+        common_parameters = nil
         operations.each_pair do |access, operation|
+          if access == 'parameters'
+            common_parameters = operation
+            next
+          end
           body, query, min, max = nil, [], [], []
           if operation['parameters']
+            operation['parameters'] += common_parameters if common_parameters
             (0...operation['parameters'].size).to_a.reverse.each do |index|
               parameter = operation['parameters'][index]
               operation['parameters'][index..index] = apis['parameters'][parameter[parameter.keys.first].split('/').last] if parameter.keys.first == '$ref'
