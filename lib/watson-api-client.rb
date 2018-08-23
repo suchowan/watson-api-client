@@ -6,7 +6,7 @@ require 'pp' if __FILE__ == $PROGRAM_NAME
 
 class WatsonAPIClient
 
-  VERSION = '0.0.8'
+  VERSION = '0.8.1'
 
   class Alchemy < self; end
 
@@ -69,7 +69,7 @@ class WatsonAPIClient
           access   = access.downcase
           nickname = (operation['operationId'] || path.gsub(/\/\{.+?\}/,'').split('/').last) #.sub(/(.)/) {$1.downcase}
           [nickname, nickname+'_'+access].each do |name|
-            methods[name][access]  = {'path'=>path, 'operation'=>operation, 'body'=>body, 'query'=>query, 'min'=>min, 'max'=>max}
+            methods[name][access]  = {'path'=>path, 'operation'=>operation, 'body'=>body, 'query'=>query, 'min'=>min, 'max'=>max, 'consumes'=>operation['consumes']}
           end
           digest[nickname][access] = {'path'=>path, 'summary'=>operation['summary']}
         end
@@ -79,7 +79,7 @@ class WatsonAPIClient
   end
 
   api_docs = {
-    :gateway   => 'https://gateway.watsonplatform.net',
+    :gateway  => 'https://gateway.watsonplatform.net',
     :gateway_a => 'https://gateway-a.watsonplatform.net',
     :doc_base1 => 'https://watson-api-explorer.mybluemix.net/',
     :doc_base2 => 'https://www.ibm.com/watson/developercloud/doc/',
@@ -226,6 +226,7 @@ class WatsonAPIClient
     spec['query'].each do |param|
       query[param] = options.delete(param) if options.key?(param)
     end
+    options[:content_type] = spec['consumes'].first if spec['consumes'].kind_of?(Array) && spec['consumes'].length == 1
     path  = spec['path'].gsub(/\{(.+?)\}/) {options.delete($1)}
     path += '?' + URI.encode_www_form(query) unless query.empty?
     [path, access, spec]
