@@ -6,9 +6,7 @@ require 'pp' if __FILE__ == $PROGRAM_NAME
 
 class WatsonAPIClient
 
-  VERSION = '0.8.1'
-
-  class Alchemy < self; end
+  VERSION = '0.8.2'
 
   class << self
 
@@ -18,23 +16,16 @@ class WatsonAPIClient
       apis  = {}
 
       # Watson API Explorer
-      host1 = doc_urls[:doc_base1][/^https?:\/\/[^\/]+/]
-      open(doc_urls[:doc_base1], Options, &:read).scan(/<a class="swagger-list--item-link" href="\/(.+?)".*?>\s*(.+?)\s*<\/a>/i) do
+      host = doc_urls[/^https?:\/\/[^\/]+/]
+      open(doc_urls, Options, &:read).scan(/<a class="swagger-list--item-link" href="\/(.+?)".*?>\s*(.+?)\s*<\/a>/i) do
         begin
-          api = {'path'=>doc_urls[:doc_base1] + $1, 'title'=>$2.sub(/\s*\(.+?\)$/,'')}
+          api = {'path'=>doc_urls + $1, 'title'=>$2.sub(/\s*\(.+?\)$/,'')}
           open(api['path'], Options, &:read).scan(/url:\s*'(.+?)'/) do
-            api['path'] = host1 + $1
+            api['path'] = host + $1
           end
           apis[api['title']] = api
         rescue OpenURI::HTTPError
         end
-      end
-
-      # Watson Developercloud
-      host2 = doc_urls[:doc_base2][/^https?:\/\/[^\/]+/]
-      open(doc_urls[:doc_base2], Options, &:read).scan(/<li>\s*<img.+data-src=.+?>\s*<h2><a href="(.+?)".*?>\s*(.+?)\s*<\/a><\/h2>\s*<p>(.+?)<\/p>\s*<\/li>/) do
-        api = {'path'=>$1, 'title'=>$2, 'description'=>$3}
-        apis[api['title']]['description'] = api['description'] if api['path'] !~ /\.\./ && apis.key?(api['title'])
       end
 
       apis
@@ -80,22 +71,14 @@ class WatsonAPIClient
 
   api_docs = {
     :gateway  => 'https://gateway.watsonplatform.net',
-    :gateway_a => 'https://gateway-a.watsonplatform.net',
-    :doc_base1 => 'https://watson-api-explorer.mybluemix.net/',
-    :doc_base2 => 'https://www.ibm.com/watson/developercloud/doc/',
+    :doc_base => 'https://watson-api-explorer.mybluemix.net/',
     :ssl_verify_mode => OpenSSL::SSL::VERIFY_NONE
   }
   JSON.parse(ENV['WATSON_API_DOCS'] || '{}').each_pair do |key, value|
     api_docs[key.to_sym] = value
   end
-  doc_urls = {
-    :doc_base1 => api_docs.delete(:doc_base1),
-    :doc_base2 => api_docs.delete(:doc_base2)
-  }
-  Gateways = {
-    :gateway   => api_docs.delete(:gateway),
-    :gateway_a => api_docs.delete(:gateway_a)
-  }
+  doc_urls = api_docs.delete(:doc_base)
+  Gateways = api_docs.delete(:gateway)
   Options  = api_docs
   Services = JSON.parse(ENV['VCAP_SERVICES'] || '{}')
   DefaultParams = {:user=>'username', :password=>'password'}
@@ -103,14 +86,9 @@ class WatsonAPIClient
 
   retrieve_doc(doc_urls).each_value do |list|
     AvailableAPIs << list['title'].gsub(/\s+(.)/) {$1.upcase}
-    klass, env =
-      case list['title']
-      when /^Alchemy/; ['Alchemy',         'alchemy_api'                        ]
-      when /^Visual/ ; ['Alchemy',         'watson_vision_combined'             ]
-      else           ; ['WatsonAPIClient', list['title'].gsub(/\s+/,'_').downcase]
-      end
+    env = list['title'].gsub(/\s+/,'_').downcase
     module_eval %Q{
-      class #{list['title'].gsub(/\s+(.)/) {$1.upcase}} < #{klass}
+      class #{list['title'].gsub(/\s+(.)/) {$1.upcase}} < WatsonAPIClient
         Service = WatsonAPIClient::Services['#{env}']
         RawDoc  = "#{list['path']}"
 
@@ -145,7 +123,7 @@ class WatsonAPIClient
   def initialize(options={})
     define_api_methods
     set_variables(options)
-    @url   ||= Gateways[:gateway] + self.class::API['apis']['basePath']
+    @url   ||= Gateways + self.class::API['apis']['basePath']
     @options = {}
     self.class.superclass::DefaultParams.each_pair do |sym, key|
       @options[sym] = @credential[key] if @credential.key?(key)
@@ -218,6 +196,9 @@ class WatsonAPIClient
     options.keys.each do |key|
       options[key.to_s] = options.delete(key) if key.kind_of?(Symbol)
     end
+    (spec['min'] - options.keys).each do |key|
+      options[key.to_s] = @options[key.to_sym] if @options.include?(key.to_sym)
+    end
     lacked = spec['min'] - options.keys
     extra  = options.keys - spec['max']
     raise ArgumentError, "Lacked parameter(s) : '#{lacked.join(', ')}', see #{self.class::RawDoc}." unless lacked.empty?
@@ -230,33 +211,5 @@ class WatsonAPIClient
     path  = spec['path'].gsub(/\{(.+?)\}/) {options.delete($1)}
     path += '?' + URI.encode_www_form(query) unless query.empty?
     [path, access, spec]
-  end
-
-  #
-  # for Alchemy APIs
-  #
-  class Alchemy < self
-
-    DefaultParams  = %w(apikey api_key version)
-
-    def initialize(options={})
-      define_api_methods
-      set_variables(options)
-      @url  ||= (Gateways[:gateway_a] + self.class::API['apis']['basePath']).sub('/alchemy-api','')
-      @apikey = {}
-      self.class.superclass::DefaultParams.each do |key|
-        @apikey[key] = @credential[key] if @credential.key?(key)
-        @apikey[key] = options.delete(key.to_sym) if options.key?(key.to_sym)
-      end
-      @options = options
-      @service = RestClient::Resource.new(@url, @options)
-    end
-
-    private
-
-    def swagger_info(method, options)
-      options.update(@apikey)
-      super(method, options)
-    end
   end
 end
