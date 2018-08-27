@@ -48,44 +48,39 @@ The watson-api-client is a gem to use REST API on the IBM Watson™ Developer Cl
 To enable these API, you have to do the user registration to the IBM Bluemix™ beforehand, make the services effective, and be relating them to your application.
 For more information, refer to 'Getting Started' in '[Table of Contents for Services Documentation](http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/)'.
 
-###Relationship Extraction example
+###VisualRecognition example
 
-The Watson Relationship Extraction Beta was deprecated on July 27th, 2016, and Relationship Extraction functionality has been merged into AlchemyLanguage.
+Last, let's use 'Visual Recognition' service.
 
-Let's use the [Relationship Extraction functionality in 'AlchemyLanguage'](https://www.ibm.com/watson/developercloud/doc/alchemylanguage/migration.shtml) service.
+    service = WatsonAPIClient::VisualRecognition.new(:version=>'2018-03-19', :user=>'apikey', :password=>'......')
+    [
+      service.getDetectFaces('url' => 'https://.....'),
+      service.detectFaces('images_file' => open('.....jpg','rb'))
+    ].each do |result|
+      pp JSON.parse(result.body)
+    end
 
-    require 'watson-api-client'
-    service = WatsonAPIClient::AlchemyLanguage.new(:apikey=>"......",
-                                                   :verify_ssl=>OpenSSL::SSL::VERIFY_NONE)
-    result = service.URLGetTypedRelations('model'      => 'en-news',      # model:      'en-news',
-                                          'url'        => 'www.cnn.com',  # url:        'www.cnn.com',
-                                          'outputMode' => 'json')         # outputMode: 'json')
-    p JSON.parse(result.body)
-
-####Generation of the AlchemyLanguage service object
-First of all, the instance of the AlchemyLanguage class has to be generated.
-All constructor arguments are passed to the constructor of [RestClient::Resource](http://www.rubydoc.info/gems/rest-client/RestClient/Resource) class except for :apikey, :api_key and :version.
+####Generation of the VisualRecognition service object
+First of all, the instance of the VisualRecognition class has to be generated.
+All constructor arguments are passed to the constructor of [RestClient::Resource](http://www.rubydoc.info/gems/rest-client/RestClient/Resource) class except for :version.
 Please refer to the document of the rest-client for the details of this hash argument.
 
-Class name called AlchemyLanguage is the camel case-ized service name of [Watson API Reference](http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/apis/).
-:apikey is the 'apikey' picked out from environment variable VCAP_SERVICES.
-Please refer to '[Viewing Bluemix environment variables](http://www.ibm.com/watson/developercloud/doc/getting_started/gs-variables.shtml#vcapServices)' for the details of VCAP_SERVICES.
+Class name called VisualRecognition is the camel case-ized service name of [Watson API Reference](http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/apis/).
+:password is the 'apikey' picked out from environment variable VCAP_SERVICES.
+Please refer to '[Viewing Bluemix environment variables](https://console.bluemix.net/docs/services/watson/getting-started-variables.html#vcapServices)' for the details of VCAP_SERVICES.
 
-If the server application is a Ruby on Rails application that require 'watson-api-client', and if it is deployed on the Cloud Foundry, the watson-api-client can read environment variable VCAP_SERVICES directly.
-In this case, the specification of :apikey is omissible.
-
-####Extraction of relationship in an example site using AlchemyLanguage#URLGetTypedRelations
-Next, by the 'URLGetTypedRelations' method of the AlchemyLanguage class, we try to extract relationship in an example site.
-How to set the arguments can be seen at Alchemy's [API Reference](https://www.ibm.com/watson/developercloud/alchemy-language/api/v1/#relations).
+####Visual recognition using VisualRecognition#getDetectFaces and VisualRecognition#detectFaces
+Next, by the 'getDetectFaces' and 'detectFaces' method of the VisualRecognition class, we try to recognize examples.
+How to set the arguments can be seen at VisualRecognition's [API Reference](https://www.ibm.com/watson/developercloud/visual-recognition/api/v3/curl.html?curl).
 
 This can be seen by opening the [JSON code of Swagger](https://watson-api-explorer.mybluemix.net/listings/alchemy-language-v1.json).
 
-The list of the method of the AlchemyLanguage class can be seen even by using the following script.
+The list of the method of the VisualRecognition class can be seen even by using the following script.
 
-    p WatsonAPIClient::AlchemyLanguage::API['digest']
+    p WatsonAPIClient::VisualRecognition::API['digest']
 
-Since 'json' is specified as output mode type ('outputMode') in this example, the JSON string is stored in the body of the 'URLGetTypedRelations' method response.
-When converting this JSON string to a hash object using JSON.parse method, the result of URLGetTypedRelations can be used variously by your client programs.
+The JSON string is stored in the body of the 'getDetectFaces' and 'detectFaces' method response.
+When converting this JSON string to a hash object using JSON.parse method, the result of thesemethods can be used variously by your client programs.
 
 ###Personality Insights example
 
@@ -106,57 +101,37 @@ Next, let's use 'Personality Insights'.
 The class name, the method name, and the argument setting rules are the same as that of the case of 'AlchemyLanguage' almost.
 The rest-client and the watson-api-client judge which of path, query, header, body each argument is used for automatically.
 
-###Visual Recognition example
+###Discovery example
 
-Last, let's use 'Visual Recognition'.
+Last, let's use 'Discovery' service.
 
-    service = WatsonAPIClient::VisualRecognition.new(:api_key=>"...", :version=>'2016-05-20')
-    [
-      service.detect_faces('url'=>'https://example.com/example.jpg'),
-      service.detect_faces('url'=>'https://example.com/example.jpg', :access=>'get'),
-      service.detect_faces_get('url'=>'https://example.com/example.jpg'),
-      service.detect_faces('image_file' => open('face.png','rb')),
-      service.detect_faces('image_file' => open('face.png','rb'), :access=>'post'),
-      service.detect_faces_post('image_file' => open('face.png','rb'))
-    ].each do |result|
-      pp JSON.parse(result.body)
-    end
+    service = WatsonAPIClient::Discovery.new(:version=>'2018-08-01', :user=>".....", :password=>".....")
 
-Please be careful about the difference in the spellings of :apikey and :api_key.
+    result = service.listEnvironments()
+    pp JSON.parse(result.body)
 
-The 'detect_faces' method comes to work in both 'get' access and 'post' access.
-When being ambiguous, it's judged by the kind of designated parameters automatically.
+    result = service.updateEnvironment(
+      'environment_id' => '.......',
+      'body' => JSON.generate({'name' => 'Tutorial', 'description' => 'description of Tutorial'})
+    )
+    pp JSON.parse(result.body)
+
+If the server application is a Ruby on Rails application that require 'watson-api-client', and if it is deployed on the Cloud Foundry, the watson-api-client can read environment variable VCAP_SERVICES directly. In this case, the specification of :user and :password are omissible.
 
 ###Natural Language Classifier example
 
 Please see [examples/NaturalLanguageClassifier/README.md](https://github.com/suchowan/watson-api-client/tree/master/examples/NaturalLanguageClassifier/README.md).
 
 
-Additional note at the release of the version 0.0.3
+Additional note
 -------
-The documents which 'watson-api-client' referred to have changed in [February 2016](https://github.com/suchowan/watson-api-client/issues/1).
-
-
-(1) The JSON file which held the list of APIs emptied.
-
-(2) The version of Swagger which describes API specifications went up from 1.2 to 2.0.
-
-
-They may be linked to the release of the IBM Watson for Japanese language.
-
-The new version 0.0.3 corresponding to them was released provisionally.
-Concerning about (1) in the version 0.0.3, the locations of JSON files which describe API specification are acquired from contents of web pages for human using regular expressions.
-
-Essentially, as well as former versions, the location of the API documents should be readable with JSON file.
-I will request to the IBM to revive the JSON file which held the list of APIs.
-
-At present this gem is an alpha version and only the normal behavior of RelationshipExtraction(functionality), PersonalityInsights, VisualRecognition and Natural Language Classifier are confirmed.
+At present this gem is an alpha version and only the normal behavior of a few services are confirmed.
 It is welcome when you can cooperate with the confirmation of other various functions.
 
 
 Credits
 -------
-Copyright (c) 2015-2016 [Takashi SUGA](http://hosi.org/TakashiSuga.ttl)
+Copyright (c) 2015-2018 [Takashi SUGA](http://hosi.org/TakashiSuga.ttl)
 
 
 Legal
