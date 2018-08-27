@@ -82,25 +82,6 @@ The list of the method of the VisualRecognition class can be seen even by using 
 The JSON string is stored in the body of the 'getDetectFaces' and 'detectFaces' method response.
 When converting this JSON string to a hash object using JSON.parse method, the result of thesemethods can be used variously by your client programs.
 
-###Personality Insights example
-
-Next, let's use 'Personality Insights'.
-
-    service = WatsonAPIClient::PersonalityInsights.new(:user=>"xxxxxx",
-                                                       :password=>"yyyyy",
-                                                       :verify_ssl=>OpenSSL::SSL::VERIFY_NONE)
-    result = service.profile(
-      'Content-Type'     => "text/plain",
-      'Accept'           => "application/json",
-      'Accept-Language'  => "en",
-      'Content-Language' => "en",
-      'body'             => open('https://raw.githubusercontent.com/suchowan/watson-api-client/master/LICENSE',
-                                 :ssl_verify_mode=>OpenSSL::SSL::VERIFY_NONE))
-    p JSON.parse(result.body)
-
-The class name, the method name, and the argument setting rules are the same as that of the case of 'AlchemyLanguage' almost.
-The rest-client and the watson-api-client judge which of path, query, header, body each argument is used for automatically.
-
 ###Discovery example
 
 Last, let's use 'Discovery' service.
