@@ -50,7 +50,7 @@ For more information, refer to 'Getting Started' in '[Table of Contents for Serv
 
 ###VisualRecognition example
 
-Last, let's use 'Visual Recognition' service.
+Let's use 'Visual Recognition' service.
 
     service = WatsonAPIClient::VisualRecognition.new(:version=>'2018-03-19', :user=>'apikey', :password=>'......')
     [
@@ -61,6 +61,7 @@ Last, let's use 'Visual Recognition' service.
     end
 
 ####Generation of the VisualRecognition service object
+
 First of all, the instance of the VisualRecognition class has to be generated.
 All constructor arguments are passed to the constructor of [RestClient::Resource](http://www.rubydoc.info/gems/rest-client/RestClient/Resource) class except for :version.
 Please refer to the document of the rest-client for the details of this hash argument.
@@ -68,8 +69,10 @@ Please refer to the document of the rest-client for the details of this hash arg
 Class name called VisualRecognition is the camel case-ized service name of [Watson API Reference](http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/apis/).
 :password is the 'apikey' picked out from environment variable VCAP_SERVICES.
 Please refer to '[Viewing Bluemix environment variables](https://console.bluemix.net/docs/services/watson/getting-started-variables.html#vcapServices)' for the details of VCAP_SERVICES.
+This gem version no longer supports the authentication mechanism for service instances created before May 23, 2018.
 
 ####Visual recognition using VisualRecognition#getDetectFaces and VisualRecognition#detectFaces
+
 Next, by the 'getDetectFaces' and 'detectFaces' method of the VisualRecognition class, we try to recognize examples.
 How to set the arguments can be seen at VisualRecognition's [API Reference](https://www.ibm.com/watson/developercloud/visual-recognition/api/v3/curl.html?curl).
 
@@ -109,6 +112,8 @@ Additional note
 At present this gem is an alpha version and only the normal behavior of a few services are confirmed.
 It is welcome when you can cooperate with the confirmation of other various functions.
 
+IBM announces that the Watson API Explorer will be removed on [October 31, 2018](https://watson-api-explorer.ng.bluemix.net/).
+Therefore, the life span of this gem version is about one month. Please understand this situation before using this gem veresion.
 
 Credits
 -------
